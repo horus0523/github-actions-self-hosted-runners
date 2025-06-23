@@ -1,1 +1,751 @@
-# github-actions-self-hosted-runners
+# 🚀 GitHub Actions Self-Hosted Runners
+
+```
+DIAGRAM: GITHUB ACTIONS – WORKFLOW & RUNNER ARCHITECTURE
+
+                        +--------------------+
+                        |  Trigger: Push/PR  |
+                        +--------------------+
+                                 |
+                                 v
++-------------------+     +------------------------+
+|                   | --> |   Checkout Code        |
+|  GITHUB ACTIONS   | --> |   Setup Python Matrix  |
+|   WORKFLOW        | --> |   Install Dependencies |
+|                   | --> |   Lint with flake8     |
++-------------------+ --> |   Run Tests            |
+                          |   Docker Login         |
+                          |   Build & Push Image   |
+                          +------------------------+
+                                 |
+                                 v
+                      +-------------------------+
+                      | Where does it run?      |
+                      +-----------+-------------+
+                                  |
+             +--------------------+--------------------+
+             |                                         |
+             v                                         v
+ +-----------------------------+          +-----------------------------+
+ |  PART A: GITHUB RUNNERS     |          |  PART B: SELF-HOSTED        |
+ |  (Managed Infrastructure)   |          |  (Custom AWS EC2)           |
+ +-----------------------------+          +-----------------------------+
+ | * GitHub Runners            |          | * EC2 Instance              |
+ | * Auto-scaled VMs           |          | * Security Group            |
+ | * No infrastructure config  |          | * Key Pair                  |
+ +-----------------------------+          +-----------------------------+
+```
+
+## 📌 Description
+
+This project is developed in **two parts** to master GitHub Actions:
+
+- **🎯 Part A**: Basic implementation with GitHub-hosted runners
+- **🚀 Part B**: Advanced configuration with self-hosted runners on AWS EC2
+
+Includes complete CI/CD pipeline with Python, automated testing and deployment through Docker.
+
+## 🧰 Tech Stack
+
+- 🐍 **Python** (3.11, 3.12) - Development and testing
+- 🚀 **GitHub Actions** - Automated CI/CD pipeline
+- ☁️ **AWS EC2** - Infrastructure for custom runners
+- 🔐 **AWS CLI** - Cloud resource management
+- 🐳 **Docker** - Application containerization
+- 🧪 **pytest** - Testing framework
+- 🔍 **flake8** - Static code analysis
+- 📦 **GitHub Container Registry** - Image registry
+
+## 🏗️ Pipeline Flow
+
+```
+COMPLETE CI/CD PIPELINE FLOW
+
+    Push/PR Event
+         |
+         v
+    +----------+     +-------------+     +----------+     +----------+
+    | Checkout | --> | Setup Multi | --> | Lint &   | --> | Docker   |
+    | Source   |     | Python Env  |     | Test     |     | Deploy   |
+    +----------+     +-------------+     +----------+     +----------+
+```
+
+## 📁 Project Structure
+
+```
+├── .github/
+│   └── workflows/
+│       └── test_and_build.yaml     # Main CI/CD pipeline
+├── src/                            # Application source code
+│   ├── main.py                     # Main file
+│   └── test.py                     # Unit tests
+├── templates/                      # Templates folder with `PART A` and `PART B`
+├── requirements.txt                # Python dependencies
+├── Dockerfile                      # Container configuration
+├── README.md                       # README file
+└── .gitignore                      # Git ignore file
+```
+
+## ⚙️ Pipeline Configuration
+
+### 🔄 Triggers
+
+- ✅ Push to main branch
+- ✅ Pull Requests to main branch
+
+### 🐍 Matrix Strategy
+
+The pipeline runs on multiple Python versions:
+
+- Python 3.10
+- Python 3.11
+
+### 🛠️ Pipeline Steps
+
+1. **📥 Checkout Repository**
+
+   - Downloads the source code
+
+2. **🐍 Setup Python**
+
+   - Configures Python environment using matrix strategy
+
+3. **📦 Install Dependencies**
+
+   ```bash
+   python -m pip install --upgrade pip
+   pip install flake8 pytest
+   pip install -r requirements.txt
+   ```
+
+4. **🔍 Lint with flake8**
+
+   - Verifies syntax and code style
+   - Configuration: max-complexity=10, max-line-length=127
+
+5. **🧪 Run Tests**
+
+   ```bash
+   python -m pytest src/test.py
+   ```
+
+6. **🐳 Docker Build & Push**
+   - Login to GitHub Container Registry
+   - Build and push Docker image
+
+---
+
+## 🎯 PART A: GitHub Hosted Runners
+
+---
+
+### 📋 Initial Setup
+
+#### 1. **Configure Your Repository**
+
+```bash
+# Create your own repository based on this project
+git clone https://github.com/horus0523/github-actions-self-hosted-runners.git
+cd github-actions-self-hosted-runners
+
+# Configure your remote repository (modify with your data)
+git remote set-url origin https://github.com/YOUR-USERNAME/YOUR-REPOSITORY.git
+```
+
+#### 2. **Verify Local Dependencies**
+
+##### Create virtual environment
+
+```bash
+# Create a virtual environment called "venv"
+python -m venv venv
+```
+
+##### Activate it (according to your operating system)
+
+```bash
+# On Linux/macOS:
+source venv/bin/activate
+```
+
+```bash
+# On Windows (CMD):
+venv\Scripts\activate
+```
+
+```bash
+# On PowerShell:
+venv\Scripts\Activate.ps1
+```
+
+```bash
+# Install Python dependencies
+pip install -r requirements.txt
+```
+
+#### Run tests to verify everything works
+
+```bash
+# Run tests to verify everything works
+python -m pytest src/test.py -v
+```
+
+```bash
+# Verify code quality with flake8
+flake8 src/ --max-line-length=127 --exclude=__pycache__
+```
+
+```bash
+# Run the main application
+python src/main.py
+```
+
+#### 3. **Enable GitHub Actions**
+
+- Go to your repository on GitHub
+- Navigate: `Settings > Actions > General`
+- Enable: `Allow all actions and reusable workflows`
+
+### 🔄 Pipeline Operation
+
+The `test_and_build.yaml` workflow automatically executes:
+
+1. **🔍 Code Quality Check**
+
+   ```bash
+   # Change directory to src/ and run flake8
+   cd src
+   flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+   flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+   ```
+
+2. **🧪 Multi-Version Testing**
+
+   - Runs tests on Python 3.11 and 3.12
+   - Matrix strategy for compatibility
+
+3. **🐳 Container Build & Push**
+   - Builds optimized Docker image
+   - Publishes to GitHub Container Registry
+
+### 📊 Monitoring and Debugging
+
+```bash
+# View pipeline run list
+gh run list
+```
+
+```bash
+# View workflow execution logs
+gh run view RUN-ID --log # Replace RUN-ID with one from the list
+```
+
+```bash
+# list all available workflows
+gh workflow list
+```
+
+```bash
+# Show detailed information of a specific workflow
+gh workflow view test_and_build.yaml
+```
+
+---
+
+## 🚀 PART B: Self-Hosted Runners on AWS EC2
+
+---
+
+### 🛠️ Configure Variables in GitHub
+
+#### 👇 Required Variables
+
+1. `${{ vars.DOCKERHUB_USERNAME }}` → your **Docker Hub username**
+2. `${{ secrets.DOCKERHUB_TOKEN }}` → an **access token** generated in Docker Hub
+
+#### 🔐 Step 1: Create a token in Docker Hub
+
+1. Go to [https://hub.docker.com/](https://hub.docker.com/) and **sign in**
+2. Click on your user icon (top right) → choose **"Account Settings"**
+3. In the sidebar menu, select **"Security"**.
+4. In the **"Access Tokens"** section, click **"New Access Token"**
+5. Give it a name (e.g., `github-token`), and give it default permissions
+6. Click **"Create"**
+7. Copy the generated token (it's only shown once!)
+
+#### 🧬 Step 2: Go to your repository on GitHub
+
+1. Go to your repository on GitHub
+2. Click on the **"Settings"** tab (⚙️)
+3. In the sidebar menu, scroll down to **"Secrets and variables"** → choose **"Actions"**
+
+#### 🔑 Step 3: Add the **secret**
+
+1. Click on **"New repository secret"**
+2. Fill in the fields as follows:
+
+   - **Name:** `DOCKERHUB_TOKEN`
+   - **Value:** paste the token you copied from Docker Hub
+
+3. Click **"Add secret"**
+
+#### 🧾 Step 4: Add the **variable**
+
+1. From the same menu (**"Secrets and variables" → "Actions"**), go to the **"Variables"** tab
+2. Click on **"New repository variable"**
+3. Fill in the fields as follows:
+
+   - **Name:** `DOCKERHUB_USERNAME`
+   - **Value:** your Docker Hub username (e.g., `horuschourio`)
+
+4. Click **"Add variable"**
+
+### 🛠️ AWS Environment Setup
+
+#### 1. **Configure AWS CLI**
+
+```bash
+# Install AWS CLI v2
+curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+unzip awscliv2.zip && sudo ./aws/install
+```
+
+```bash
+# Configure credentials
+aws configure
+# AWS Access Key ID: [Your Access Key]
+# AWS Secret Access Key: [Your Secret Key]
+# Default region: us-east-1
+# Default output format: json
+```
+
+### 2. ☁️ **Create AWS Infrastructure**
+
+#### 2.1 Sign in to AWS
+
+1. Go to [https://aws.amazon.com/console/](https://aws.amazon.com/console/)
+2. Sign in with your account
+
+   - If you have an IAM user, **use it instead of the root account** for security
+
+#### 2.2 Choose the Right Region
+
+Make sure to select the region where you will create all resources:
+
+- **US East (N. Virginia)** - `us-east-1`: Most commonly used with lower prices.
+- **South America (São Paulo)** - `sa-east-1`: Better latency if you are in South America.
+
+#### 2.3 🔐 Create Required Resources Before the Instance
+
+##### 1. Create the key pair (SSH key)
+
+This key is necessary to connect to the server. It can only be downloaded once.
+
+1. Search for **EC2** in the search bar and access the service
+2. In the left menu, go to **Key Pairs** (under "Network & Security")
+3. Click on **Create key pair**:
+
+   - **Name**: `github-runner-key-pair`
+   - **Type**: ED25519
+   - **Format**:
+
+   - `.pem` for Linux, macOS, or Windows with WSL
+   - `.ppk` for PuTTY on Windows
+
+4. Click on **Create key pair**
+
+A `.pem` or `.ppk` file will be downloaded. **Save it carefully**. It's essential for connecting.
+
+##### 2. Create a Security Group
+
+This allows you to define what traffic can access your instance.
+
+1. In the left menu, go to **Security Groups**
+
+2. Click on **Create security group**
+
+3. Configure as follows:
+
+   - **Name**: `ssh-from-my-ip`
+   - **Description**: `Allow SSH access only from my IP`
+   - **VPC**: Leave the default
+
+4. In **Inbound rules**, click "Add rule":
+
+5. **Add rule:**
+
+   - Type: SSH
+   - Port: 22
+   - Source type: My IP
+
+6. In **Outbound rules (verify they are present):**
+
+- Type: All traffic
+- Port: All
+- Destination: 0.0.0.0/0
+
+7. Click **Create security group**
+
+#### 2.4 🖥️ Create the EC2 Instance
+
+##### 1. Launch new instance
+
+1. Go to **Instances** > **Launch instances**
+2. Set a name like: `github-runner-ec2`
+
+##### 2. Choose operating system
+
+Choose a **Free tier eligible** AMI, such as:
+
+- **Ubuntu Server 24.04 LTS**
+
+##### 3. Select instance type
+
+- Use **t2.micro** or **t3.micro**, both within the free tier.
+
+##### 4. Choose key pair
+
+- In **Key pair (login)**, choose:
+
+  - ✅ **Choose existing key pair**
+  - Select `github-runner-key-pair`
+
+⚠️ **Make sure you have the `.pem` or `.ppk` file saved**, or you won't be able to connect.
+
+##### 5. Configure network and security
+
+- **VPC and subnet**: Leave the default values
+- **Auto-assign public IP**: ✅ Enabled
+- **Firewall (Security group)**:
+
+- Select **"Select existing security group"**
+- Check the `ssh-from-my-ip` group you created earlier
+
+##### 6. Additional configuration
+
+- **Storage**: Leave the default 8 GB (free)
+- **Tags (optional)**:
+
+  - Key: `Name`, Value: `github-runner-ec2`
+
+Click **Launch instance**
+
+##### 7. ⏳ Wait and get IP
+
+1. Go to **Instances** > **View all instances**
+2. Wait for the status to be **Running** and the checks to be **2/2 passed**
+3. Copy the **Public IPv4 address**
+
+#### 2.5 🔗 Connect to the instance
+
+##### From Linux, macOS or Windows with WSL
+
+1. Open the terminal
+2. Go to the directory where you saved your `.pem` file
+3. Set permissions:
+
+   ```bash
+   chmod 400 github-runner-key-pair.pem
+   ```
+
+4. Connect:
+
+   ```bash
+   ssh -i "github-runner-key-pair.pem" ubuntu@YOUR_PUBLIC_IP
+   ```
+
+### ⚙️ 3. Configure the runner
+
+3.1 **Go to: GitHub Repo > Settings > Actions > Runners**
+
+3.2 **Click "New self-hosted runner"**
+
+3.3 **Follow the instructions for your OS (in this case the EC2 instance)**
+
+3.4 **Follow the step-by-step instructions (example command below 👇)**
+
+```bash
+# 1. Create a folder for the runner
+mkdir actions-runner && cd actions-runner
+
+# 2. Download the package (adjust URL according to version)
+curl -o actions-runner-linux-x64-2.315.0.tar.gz -L https://github.com/actions/runner/releases/download/v2.315.0/actions-runner-linux-x64-2.315.0.tar.gz
+
+# 3. Extract the files
+tar xzf ./actions-runner-linux-x64-2.315.0.tar.gz
+
+# 4. Configure your repository (customized for your repo and token)
+./config.sh --url https://github.com/YOUR_USERNAME/YOUR_REPOSITORY --token YOUR_TOKEN
+
+# 5. Follow the instructions and respond when prompted for the runner name and group, or just press 'enter' to accept the default options
+
+# You will see these questions:
+# Enter the name of the runner group [default: Default]:
+# Enter the name of runner [default: ip-172-31-xx-xx]: MY-CUSTOM-RUNNER
+# Enter any additional labels []:
+# Enter name of work folder [default: _work]:
+```
+
+3.5 **Options for the name:**
+
+- ✅ **Accept default**: Use the internal IP of the EC2 instance
+- ✅ **Custom**: Write something descriptive like `aws-ec2-runner-prod`
+- ✅ **Function-based**: `github-runner-testing`, `ci-cd-runner`
+
+### ▶️ 4. Start the runner
+
+```bash
+./run.sh # Run it manually
+```
+
+This will start the runner in interactive mode (open terminal). To leave it running as a service:
+
+```bash
+# To install/manage as a Linux service
+sudo ./svc.sh install
+sudo ./svc.sh start
+```
+
+Check the service status
+
+```bash
+sudo systemctl status actions.runner.*
+```
+
+### ✅ 5. Verify that it's active
+
+Go back to your GitHub repository → **Settings > Actions > Runners**
+
+You should see your new runner as `online`.
+
+### 6. **Update the Workflow in test_and_build.yaml file to use the aws ec2 instance**
+
+```yaml
+name: Python Application CI-CD
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  test_and_build:
+    runs-on: self-hosted
+
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12"]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install flake8 pytest
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+      - name: Install and setup Docker
+        run: |
+          sudo apt update
+          sudo apt install docker.io -y
+          sudo systemctl start docker
+          sudo systemctl enable docker
+          sudo usermod -aG docker $USER
+          sudo chmod 666 /var/run/docker.sock
+
+      - name: Verify Docker setup
+        run: |
+          docker --version
+          docker info
+
+      - name: Lint with flake8
+        working-directory: src
+        run: |
+          # Fail if there are serious syntax errors or undefined names
+          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+          # Warnings for the rest of the issues
+          flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+
+      - name: Run tests with pytest
+        working-directory: src
+        run: |
+          python -m pytest test.py
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ vars.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ vars.DOCKERHUB_USERNAME }}/mi-app-test:latest
+```
+
+### 7. 🔒 Permissions and Security
+
+The workflow uses the following permissions:
+
+- `contents: read` - Code reading
+- `packages: write` - Write access to GitHub Container Registry
+
+### 8. 🛡️ Repository Secrets Configuration
+
+The workflow uses:
+
+- `GITHUB_TOKEN` (automatic)
+- `Docker`:
+  - username: ${{ vars.DOCKERHUB_USERNAME }}
+  - password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+#### Security Group Rules:
+
+1. **Inbound rules**
+
+   - Type: SSH
+   - Port: 22
+   - Source type: My IP
+
+2. **Outbound rules**
+
+- Type: All traffic
+- Port: All
+- Destination: 0.0.0.0/0
+
+---
+
+### 🎮 Runner Management
+
+```bash
+# Check runner status
+sudo systemctl status actions.runner.*
+
+# View logs in real time
+sudo journalctl -u actions.runner.* -f
+
+# Restart runner if necessary
+sudo systemctl restart actions.runner.*
+```
+
+```bash
+# List all GitHub Actions runner services
+sudo systemctl list-units --type=service | grep actions.runner
+
+# Or view services that contain "runner"
+sudo systemctl list-units --type=service | grep runner
+```
+
+---
+
+## 📊 Comparison: GitHub vs Self-Hosted
+
+| Aspect               | GitHub Hosted    | Self-Hosted (AWS)   | Explanation                                                                                                                        |
+| -------------------- | ---------------- | ------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| **🕒 Setup Time**    | Immediate        | \~15 minutes        | GitHub Hosted runners are ready instantly. Self-hosted requires launching a server, installing the runner, and configuring it.     |
+| **💰 Cost**          | Included minutes | Pay-per-use AWS     | GitHub provides free minutes (especially for public repos). With AWS, you pay for compute, storage, and network use.               |
+| **🎛️ Control**       | Limited          | Total               | GitHub Hosted has a fixed environment. Self-hosted gives full control over OS, installed tools, and network settings.              |
+| **🔧 Customization** | Basic            | Complete            | GitHub runners allow basic customization inside the job. Self-hosted runners can be customized at system level.                    |
+| **🛡️ Security**      | GitHub managed   | Your responsibility | GitHub secures their infrastructure. With self-hosted, you're responsible for updates, firewalls, access control, etc.             |
+| **📈 Scalability**   | Auto             | Manual              | GitHub automatically scales runners for parallel jobs. With self-hosted, you need to configure scaling or provision more machines. |
+
+---
+
+## 🧹 Clean Up Resources When Finished
+
+### 1. Terminate the instance
+
+1. Go to **Instances**
+2. Select yours
+3. Click on **Instance state** > **Terminate instance**
+
+### 2. Delete the security group
+
+Once the instance disappears:
+
+1. Go to **Security Groups**
+2. Select `ssh-from-my-ip`
+3. Click on **Actions** > **Delete security group**
+
+### 3. Delete the key pair
+
+1. Go to **Key Pairs**
+2. Select `github-runner-key-pair`
+3. Click on **Actions** > **Delete**
+4. Delete the `.pem` or `.ppk` file from your computer if you no longer need it
+
+## Verify cleanup
+
+```bash
+# Verify no instances are still running
+aws ec2 describe-instances --region us-east-1 --query 'Reservations[].Instances[?State.Name==`running`]'
+
+# Verify security groups (should not show the one you created)
+aws ec2 describe-security-groups --region us-east-1 --query 'SecurityGroups[?GroupName==`ssh-from-my-ip`]'
+
+# Verify key pairs (should not show the one you created)
+aws ec2 describe-key-pairs --region us-east-1 --query 'KeyPairs[?KeyName==`github-runner-key-pair`]'
+```
+
+---
+
+## 🔍 Troubleshooting
+
+### Common Issues
+
+#### **Runner not showing up in GitHub**
+
+```bash
+# Verify connection
+curl -I https://api.github.com
+
+# Review configuration
+cat actions-runner/.runner
+```
+
+#### **Pipeline failures**
+
+```bash
+# View detailed logs
+sudo journalctl -u actions.runner.github-runner --since "1 hour ago"
+
+# Verify resources
+free -h && df -h
+```
+
+#### **Permission issues**
+
+```bash
+# Assign ownership of the runner directory to the 'ubuntu' user
+sudo chown -R ubuntu:ubuntu ~/actions-runner
+
+# Make the runner start script executable
+sudo chmod +x actions-runner/run.sh
+```
+
+## 📚 Additional Resources
+
+- 📖 [GitHub Actions Documentation](https://docs.github.com/en/actions)
+- 🐳 [Docker Documentation](https://docs.docker.com/)
+- 🐍 [Python Testing with pytest](https://docs.pytest.org/)
+- 🔍 [Flake8 Documentation](https://flake8.pycqa.org/)
