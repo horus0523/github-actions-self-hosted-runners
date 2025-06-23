@@ -58,4 +58,4 @@ jobs:
         with:
           context: .
           push: true
-          tags: ghcr.io/horus0523/github-actions-self-hosted-runners:latest
+          tags: ghcr.io/${{ github.repository }}:latest
