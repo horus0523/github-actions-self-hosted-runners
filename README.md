@@ -38,11 +38,9 @@ DIAGRAM: GITHUB ACTIONS – WORKFLOW & RUNNER ARCHITECTURE
 
 ## Description
 
-This repository currently publishes one active GitHub-hosted CI workflow and
-template-based guidance. Some branches may also carry reusable workflows and
-Terraform configuration for an EC2-based self-hosted runner, but those paths are
-branch-local or follow-up material until they are reviewed in the same tracked
-slice. Treat the checked-in workflows and the `templates/` directory differently:
+This repository publishes an active GitHub-hosted CI workflow plus reusable
+workflow and Terraform examples for an EC2-based self-hosted runner. Treat the
+checked-in workflows and the `templates/` directory differently:
 
 - **Active workflows** under `.github/workflows/` are the workflows GitHub can run
   from this repository.
@@ -63,14 +61,14 @@ controlled path with explicit infrastructure and trust boundaries.
 | Path | Status | Purpose |
 |------|--------|---------|
 | `.github/workflows/test_and_build.yaml` | Active workflow | Runs CI on GitHub-hosted runners for pushes and pull requests to `main`. |
-| `.github/workflows/reusable-ci-pipeline.yml` | Branch-local / follow-up | Reusable CI workflow only when that file is included in the same reviewed branch. |
-| `.github/workflows/reusable-runner-provision.yml` | Branch-local / follow-up | Terraform provisioning scaffold only when that file is included in the same reviewed branch. |
+| `.github/workflows/reusable-ci-pipeline.yml` | Reusable workflow | Reusable CI workflow for trusted self-hosted runner usage. |
+| `.github/workflows/reusable-runner-provision.yml` | Reusable workflow | Reusable Terraform plan/apply workflow for trusted callers. |
 | `templates/test_and_build-part-a.yaml` | Example only | GitHub-hosted runner template. |
 | `templates/test_and_build-part-b.yaml` | Example only | Self-hosted runner template that assumes an already hardened runner host. |
 
 The active checked-in workflow uses explicitly tracked workflow permissions.
-Permission notes for reusable provisioning paths are conditional on the branch
-that carries those workflow files.
+The reusable provisioning workflow in this repository also declares its required
+permissions and only runs when another workflow calls it.
 
 ## Tech Stack
 
@@ -101,7 +99,7 @@ COMPLETE CI/CD PIPELINE FLOW
 
 ```
 ├── .github/
-│   ├── terraform/                   # Branch-local / follow-up slice when present
+│   ├── terraform/                   # Terraform for EC2 runner provisioning
 │   │   └── runner-ec2/              # Terraform for EC2 runner provisioning
 │   │       ├── main.tf              # EC2 instance resource
 │   │       ├── variables.tf         # Input variables
@@ -110,10 +108,8 @@ COMPLETE CI/CD PIPELINE FLOW
 │   │       └── iam.tf               # IAM role, attached policy, and trust relationship
 │   └── workflows/
 │       ├── test_and_build.yaml      # Main CI/CD pipeline
-│       ├── reusable-runner-provision.yml  # Branch-local / follow-up when present
-│       └── reusable-ci-pipeline.yml       # Branch-local / follow-up when present
-├── scripts/
-│   └── cleanup-runner.sh            # Runner cleanup script
+│       ├── reusable-runner-provision.yml  # Reusable Terraform provisioning workflow
+│       └── reusable-ci-pipeline.yml       # Reusable CI workflow for self-hosted runners
 ├── src/                            # Application source code
 │   ├── main.py                     # Main file
 │   └── test.py                     # Unit tests
@@ -167,9 +163,9 @@ The pipeline runs on multiple Python versions:
    python -m pytest src/test.py
    ```
 
-6. **Docker Build & Push**
-   - Login to GitHub Container Registry
-   - Build and push Docker image
+6. **Container Build**
+   - Pull requests build the image without publishing it
+   - Pushes to `main` build and publish the image to GitHub Container Registry
 
 ---
 
@@ -262,9 +258,9 @@ The `test_and_build.yaml` workflow automatically executes:
    - Runs tests on Python 3.11 and 3.12
    - Matrix strategy for compatibility
 
-3. **Container Build & Push**
-   - Builds optimized Docker image
-   - Publishes to GitHub Container Registry
+3. **Container Build**
+   - Pull requests validate the Docker build without pushing
+   - Pushes to `main` publish the image to GitHub Container Registry
 
 ### Monitoring and Debugging
 
@@ -530,7 +526,7 @@ tar xzf ./actions-runner-linux-x64-2.315.0.tar.gz
 
 3.5 **Options for the name:**
 
-- **Accept default**: Use the internal IP of the EC2 instance
+- **Accept default**: Use the private IP of the EC2 instance
 - **Custom**: Write something descriptive like `aws-ec2-runner-prod`
 - **Function-based**: `github-runner-testing`, `ci-cd-runner`
 
@@ -714,9 +710,8 @@ sudo systemctl list-units --type=service | grep runner
 
 ### Overview
 
-When the runner infrastructure slice is present on the same branch, the
-Terraform files under `.github/terraform/runner-ec2/` become the source of truth
-for host-level access controls:
+The Terraform files under `.github/terraform/runner-ec2/` are the source of
+truth for host-level access controls used by the reusable provisioning workflow:
 
 - `.github/terraform/runner-ec2/main.tf` attaches the IAM instance profile and
   security group to the EC2 instance.
@@ -724,18 +719,16 @@ for host-level access controls:
 - `.github/terraform/runner-ec2/sg.tf` scopes inbound SSH, Docker TLS, DNS,
   HTTPS, and optional bootstrap HTTP rules.
 
-In that broader slice, the values `instance_id`, `public_ip`, and
-`security_group_id` are Terraform outputs declared in
-`.github/terraform/runner-ec2/outputs.tf`. Any statement about workflow outputs
-is conditional on the branch that carries the reusable provisioning workflow.
+The values `instance_id`, `public_ip`, and `security_group_id` are Terraform
+outputs declared in `.github/terraform/runner-ec2/outputs.tf`. The reusable
+workflow does not publish them back to the caller as workflow outputs.
 
 Workflow examples must not compensate for host misconfiguration by changing
 Docker socket permissions at runtime.
 
 ### Architecture
 
-The diagram below is conditional on a branch that includes both the reusable
-workflow and the runner Terraform files.
+The diagram below reflects the committed reusable workflow and Terraform layout.
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -749,7 +742,7 @@ workflow and the runner Terraform files.
 │  │  reusable-runner-provision.yml (called workflow)           │  │
 │  │  ├─ Configure AWS credentials                              │  │
 │  │  ├─ terraform init → validate → plan                        │  │
-│  │  ├─ apply path currently gated to workflow_dispatch         │  │
+│  │  ├─ apply path runs when caller sets with.apply: true       │  │
 │  │  └─ no workflow outputs published to caller                 │  │
 │  └──────────────────────────┬───────────────────────────────┘  │
 │                               │                                 │
@@ -777,27 +770,35 @@ workflow and the runner Terraform files.
 
 ### Provision a Runner
 
-1. **Call the reusable workflow** from a trusted repository or wrapper workflow
-   only if your branch includes `.github/workflows/reusable-runner-provision.yml`:
+1. **Call the reusable workflow** from a trusted repository or wrapper workflow:
 
-```yaml
-jobs:
-  provision-runner:
-    uses: owner/repo/.github/workflows/reusable-runner-provision.yml@main
-    with:
-      environment: dev
-    secrets:
-      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-```
+ ```yaml
+ jobs:
+   provision-runner:
+     uses: owner/repo/.github/workflows/reusable-runner-provision.yml@main
+     with:
+       environment: dev
+       apply: false
+       terraform_source_repository: horus0523/github-actions-self-hosted-runners
+       terraform_source_ref: main
+     secrets:
+       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+ ```
 
-Where that reusable workflow is present, a `workflow_call` invocation runs
-Terraform init, validation, and plan creation. The `Terraform Apply` step is
-gated on `github.event_name == 'workflow_dispatch'`, so it is not reached
-through this callable entrypoint alone. Use a wrapper or adjust the
-trigger/condition if you need an apply-capable path.
+This `workflow_call` entrypoint always runs Terraform init, validate, and plan.
+`Terraform Apply` runs only when the trusted caller sets `with.apply: true`.
+Keep the default `false` for review and validation flows. By default, the
+workflow checks out `horus0523/github-actions-self-hosted-runners@main` so the
+Terraform source is explicit and the `.github/terraform/runner-ec2` directory is
+always available. Override `terraform_source_repository` or
+`terraform_source_ref` only when you intentionally want to provision from a fork
+or another revision.
 
-2. **Create environment tfvars file** (e.g., `dev.tfvars`):
+2. **Provide a tfvars file** in the checked-out Terraform source repository at
+   `.github/terraform/runner-ec2/<environment>.tfvars`, or pass
+   `with.tfvars_file` explicitly to point at another file within that checked-out
+   repository. Example `dev.tfvars`:
 
 ```hcl
 ami                         = "ami-0abcdef1234567890"
