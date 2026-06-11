@@ -781,7 +781,7 @@ The diagram below reflects the committed reusable workflow and Terraform layout.
         apply: false
         terraform_source_repository: horus0523/github-actions-self-hosted-runners
         terraform_source_ref: main
-        tfvars_file: .github/terraform/runner-ec2/dev.tfvars
+        tfvars_file: path/to/your-runner.tfvars
       secrets:
         AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -800,8 +800,9 @@ or another revision.
    at a file that exists inside the checked-out Terraform source repository/ref.
    The reusable workflow always runs `terraform plan -var-file=...`, so the
    caller-owned tfvars file must provide required values such as `ami` and
-   `subnet_id`. This repository does not commit a default `<environment>.tfvars`
-   file for you. Example caller-owned `dev.tfvars`:
+   `subnet_id`. This repository does not ship a default `<environment>.tfvars`
+   file, so the path must come from the caller/source repo you check out.
+   Example caller-owned `dev.tfvars`:
 
 ```hcl
 ami                         = "ami-0abcdef1234567890"
