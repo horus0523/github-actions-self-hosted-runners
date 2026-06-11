@@ -1,0 +1,65 @@
+name: Reusable Runner Provision
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        type: string
+        default: dev
+      runner_user:
+        type: string
+        default: ubuntu
+    secrets:
+      AWS_ACCESS_KEY_ID:
+        required: true
+      AWS_SECRET_ACCESS_KEY:
+        required: true
+      SSH_PUBLIC_KEY:
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  provision:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+
+      - name: Configure AWS
+        uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Terraform Init
+        run: terraform init
+        working-directory: .github/terraform/runner-ec2
+
+      - name: Terraform Validate
+        run: terraform validate
+        working-directory: .github/terraform/runner-ec2
+
+      - name: Terraform Plan
+        run: |
+          terraform plan \
+            -var-file=${{ inputs.environment }}.tfvars \
+            -out=tfplan
+        working-directory: .github/terraform/runner-ec2
+
+      - name: Terraform Apply
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          terraform apply \
+            -var-file=${{ inputs.environment }}.tfvars \
+            -auto-approve
+        working-directory: .github/terraform/runner-ec2
+
+      - name: Upload Terraform Plan Artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: github.ref != 'refs/heads/main'
+        with:
+          name: terraform-plan-${{ inputs.environment }}
+          path: .github/terraform/runner-ec2/tfplan
+          retention-days: 5
