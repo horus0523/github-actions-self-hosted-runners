@@ -1,4 +1,4 @@
-# 🚀 GitHub Actions Self-Hosted Runners
+# GitHub Actions Self-Hosted Runners
 
 ```
 DIAGRAM: GITHUB ACTIONS – WORKFLOW & RUNNER ARCHITECTURE
@@ -36,27 +36,54 @@ DIAGRAM: GITHUB ACTIONS – WORKFLOW & RUNNER ARCHITECTURE
  +-----------------------------+          +-----------------------------+
 ```
 
-## 📌 Description
+## Description
 
-This project is developed in **two parts** to master GitHub Actions:
+This repository currently publishes one active GitHub-hosted CI workflow and
+template-based guidance. Some branches may also carry reusable workflows and
+Terraform configuration for an EC2-based self-hosted runner, but those paths are
+branch-local or follow-up material until they are reviewed in the same tracked
+slice. Treat the checked-in workflows and the `templates/` directory differently:
 
-- **🎯 Part A**: Basic implementation with GitHub-hosted runners
-- **🚀 Part B**: Advanced configuration with self-hosted runners on AWS EC2
+- **Active workflows** under `.github/workflows/` are the workflows GitHub can run
+  from this repository.
+- **Templates** under `templates/` are examples for operators to copy and adapt;
+  they are not executed by this repository until moved into `.github/workflows/`.
 
-Includes complete CI/CD pipeline with Python, automated testing and deployment through Docker.
+The documentation is organized in two parts:
 
-## 🧰 Tech Stack
+- **Part A**: Basic implementation with GitHub-hosted runners
+- **Part B**: Advanced configuration with self-hosted runners on AWS EC2
 
-- 🐍 **Python** (3.11, 3.12) - Development and testing
-- 🚀 **GitHub Actions** - Automated CI/CD pipeline
-- ☁️ **AWS EC2** - Infrastructure for custom runners
-- 🔐 **AWS CLI** - Cloud resource management
-- 🐳 **Docker** - Application containerization
-- 🧪 **pytest** - Testing framework
-- 🔍 **flake8** - Static code analysis
-- 📦 **GitHub Container Registry** - Image registry
+The active CI path runs Python linting, tests, and a container build/push from
+GitHub-hosted runners. Self-hosted runner usage is documented as an operator
+controlled path with explicit infrastructure and trust boundaries.
 
-## 🏗️ Pipeline Flow
+## Active Workflows vs Templates
+
+| Path | Status | Purpose |
+|------|--------|---------|
+| `.github/workflows/test_and_build.yaml` | Active workflow | Runs CI on GitHub-hosted runners for pushes and pull requests to `main`. |
+| `.github/workflows/reusable-ci-pipeline.yml` | Branch-local / follow-up | Reusable CI workflow only when that file is included in the same reviewed branch. |
+| `.github/workflows/reusable-runner-provision.yml` | Branch-local / follow-up | Terraform provisioning scaffold only when that file is included in the same reviewed branch. |
+| `templates/test_and_build-part-a.yaml` | Example only | GitHub-hosted runner template. |
+| `templates/test_and_build-part-b.yaml` | Example only | Self-hosted runner template that assumes an already hardened runner host. |
+
+The active checked-in workflow uses explicitly tracked workflow permissions.
+Permission notes for reusable provisioning paths are conditional on the branch
+that carries those workflow files.
+
+## Tech Stack
+
+- **Python** (3.11, 3.12) - Development and testing
+- **GitHub Actions** - Automated CI/CD pipeline
+- **AWS EC2** - Infrastructure for custom runners
+- **AWS CLI** - Cloud resource management
+- **Docker** - Application containerization
+- **pytest** - Testing framework
+- **flake8** - Static code analysis
+- **GitHub Container Registry** - Image registry
+
+## Pipeline Flow
 
 ```
 COMPLETE CI/CD PIPELINE FLOW
@@ -70,47 +97,58 @@ COMPLETE CI/CD PIPELINE FLOW
     +----------+     +-------------+     +----------+     +----------+
 ```
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 ├── .github/
+│   ├── terraform/                   # Branch-local / follow-up slice when present
+│   │   └── runner-ec2/              # Terraform for EC2 runner provisioning
+│   │       ├── main.tf              # EC2 instance resource
+│   │       ├── variables.tf         # Input variables
+│   │       ├── outputs.tf           # Output values
+│   │       ├── sg.tf                # Security group rules
+│   │       └── iam.tf               # IAM role, attached policy, and trust relationship
 │   └── workflows/
-│       └── test_and_build.yaml     # Main CI/CD pipeline
+│       ├── test_and_build.yaml      # Main CI/CD pipeline
+│       ├── reusable-runner-provision.yml  # Branch-local / follow-up when present
+│       └── reusable-ci-pipeline.yml       # Branch-local / follow-up when present
+├── scripts/
+│   └── cleanup-runner.sh            # Runner cleanup script
 ├── src/                            # Application source code
 │   ├── main.py                     # Main file
 │   └── test.py                     # Unit tests
-├── templates/                      # Templates folder with `PART A` and `PART B`
+├── templates/                      # Example workflows; not active until copied
 ├── requirements.txt                # Python dependencies
 ├── Dockerfile                      # Container configuration
 ├── README.md                       # README file
 └── .gitignore                      # Git ignore file
 ```
 
-## ⚙️ Pipeline Configuration
+## Active Pipeline Configuration
 
-### 🔄 Triggers
+### Triggers
 
-- ✅ Push to main branch
-- ✅ Pull Requests to main branch
+- Push to main branch
+- Pull Requests to main branch
 
-### 🐍 Matrix Strategy
+### Matrix Strategy
 
 The pipeline runs on multiple Python versions:
 
-- Python 3.10
 - Python 3.11
+- Python 3.12
 
-### 🛠️ Pipeline Steps
+### Pipeline Steps
 
-1. **📥 Checkout Repository**
+1. **Checkout Repository**
 
    - Downloads the source code
 
-2. **🐍 Setup Python**
+2. **Setup Python**
 
    - Configures Python environment using matrix strategy
 
-3. **📦 Install Dependencies**
+3. **Install Dependencies**
 
    ```bash
    python -m pip install --upgrade pip
@@ -118,28 +156,28 @@ The pipeline runs on multiple Python versions:
    pip install -r requirements.txt
    ```
 
-4. **🔍 Lint with flake8**
+4. **Lint with flake8**
 
    - Verifies syntax and code style
    - Configuration: max-complexity=10, max-line-length=127
 
-5. **🧪 Run Tests**
+5. **Run Tests**
 
    ```bash
    python -m pytest src/test.py
    ```
 
-6. **🐳 Docker Build & Push**
+6. **Docker Build & Push**
    - Login to GitHub Container Registry
    - Build and push Docker image
 
 ---
 
-## 🎯 PART A: GitHub Hosted Runners
+## PART A: GitHub Hosted Runners
 
 ---
 
-### 📋 Initial Setup
+### Initial Setup
 
 #### 1. **Configure Your Repository**
 
@@ -206,11 +244,11 @@ python src/main.py
 - Navigate: `Settings > Actions > General`
 - Enable: `Allow all actions and reusable workflows`
 
-### 🔄 Pipeline Operation
+### Pipeline Operation
 
 The `test_and_build.yaml` workflow automatically executes:
 
-1. **🔍 Code Quality Check**
+1. **Code Quality Check**
 
    ```bash
    # Change directory to src/ and run flake8
@@ -219,16 +257,16 @@ The `test_and_build.yaml` workflow automatically executes:
    flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
    ```
 
-2. **🧪 Multi-Version Testing**
+2. **Multi-Version Testing**
 
    - Runs tests on Python 3.11 and 3.12
    - Matrix strategy for compatibility
 
-3. **🐳 Container Build & Push**
+3. **Container Build & Push**
    - Builds optimized Docker image
    - Publishes to GitHub Container Registry
 
-### 📊 Monitoring and Debugging
+### Monitoring and Debugging
 
 ```bash
 # View pipeline run list
@@ -252,18 +290,22 @@ gh workflow view test_and_build.yaml
 
 ---
 
-## 🚀 PART B: Self-Hosted Runners on AWS EC2
+## PART B: Self-Hosted Runners on AWS EC2
+
+This section describes the self-hosted runner operating model. The workflow and
+template examples assume trusted branches and trusted callers. Do not run
+self-hosted workflows for pull requests from untrusted forks.
 
 ---
 
-### 🛠️ Configure Variables in GitHub
+### Configure Variables in GitHub
 
-#### 👇 Required Variables
+#### Required Variables
 
 1. `${{ vars.DOCKERHUB_USERNAME }}` → your **Docker Hub username**
 2. `${{ secrets.DOCKERHUB_TOKEN }}` → an **access token** generated in Docker Hub
 
-#### 🔐 Step 1: Create a token in Docker Hub
+#### Step 1: Create a token in Docker Hub
 
 1. Go to [https://hub.docker.com/](https://hub.docker.com/) and **sign in**
 2. Click on your user icon (top right) → choose **"Account Settings"**
@@ -273,13 +315,13 @@ gh workflow view test_and_build.yaml
 6. Click **"Create"**
 7. Copy the generated token (it's only shown once!)
 
-#### 🧬 Step 2: Go to your repository on GitHub
+#### Step 2: Go to your repository on GitHub
 
 1. Go to your repository on GitHub
-2. Click on the **"Settings"** tab (⚙️)
+2. Click on the **"Settings"** tab
 3. In the sidebar menu, scroll down to **"Secrets and variables"** → choose **"Actions"**
 
-#### 🔑 Step 3: Add the **secret**
+#### Step 3: Add the **secret**
 
 1. Click on **"New repository secret"**
 2. Fill in the fields as follows:
@@ -289,7 +331,7 @@ gh workflow view test_and_build.yaml
 
 3. Click **"Add secret"**
 
-#### 🧾 Step 4: Add the **variable**
+#### Step 4: Add the **variable**
 
 1. From the same menu (**"Secrets and variables" → "Actions"**), go to the **"Variables"** tab
 2. Click on **"New repository variable"**
@@ -300,7 +342,7 @@ gh workflow view test_and_build.yaml
 
 4. Click **"Add variable"**
 
-### 🛠️ AWS Environment Setup
+### AWS Environment Setup
 
 #### 1. **Configure AWS CLI**
 
@@ -319,7 +361,7 @@ aws configure
 # Default output format: json
 ```
 
-### 2. ☁️ **Create AWS Infrastructure**
+### 2. **Create AWS Infrastructure**
 
 #### 2.1 Sign in to AWS
 
@@ -335,7 +377,7 @@ Make sure to select the region where you will create all resources:
 - **US East (N. Virginia)** - `us-east-1`: Most commonly used with lower prices.
 - **South America (São Paulo)** - `sa-east-1`: Better latency if you are in South America.
 
-#### 2.3 🔐 Create Required Resources Before the Instance
+#### 2.3 Create Required Resources Before the Instance
 
 ##### 1. Create the key pair (SSH key)
 
@@ -380,13 +422,13 @@ This allows you to define what traffic can access your instance.
 
 6. In **Outbound rules (verify they are present):**
 
-- Type: All traffic
-- Port: All
-- Destination: 0.0.0.0/0
+- Prefer **DNS resolvers only** on port 53 and **approved HTTPS destinations only** on port 443.
+- Enable **HTTP/80 only** when a bootstrap mirror cannot use HTTPS, and scope it to explicit CIDRs.
+- Do **not** keep a blanket `0.0.0.0/0` default just because it is convenient.
 
 7. Click **Create security group**
 
-#### 2.4 🖥️ Create the EC2 Instance
+#### 2.4 Create the EC2 Instance
 
 ##### 1. Launch new instance
 
@@ -407,15 +449,15 @@ Choose a **Free tier eligible** AMI, such as:
 
 - In **Key pair (login)**, choose:
 
-  - ✅ **Choose existing key pair**
+  - **Choose existing key pair**
   - Select `github-runner-key-pair`
 
-⚠️ **Make sure you have the `.pem` or `.ppk` file saved**, or you won't be able to connect.
+**Make sure you have the `.pem` or `.ppk` file saved**, or you won't be able to connect.
 
 ##### 5. Configure network and security
 
 - **VPC and subnet**: Leave the default values
-- **Auto-assign public IP**: ✅ Enabled
+- **Auto-assign public IP**: Enabled
 - **Firewall (Security group)**:
 
 - Select **"Select existing security group"**
@@ -430,13 +472,13 @@ Choose a **Free tier eligible** AMI, such as:
 
 Click **Launch instance**
 
-##### 7. ⏳ Wait and get IP
+##### 7. Wait and get IP
 
 1. Go to **Instances** > **View all instances**
 2. Wait for the status to be **Running** and the checks to be **2/2 passed**
 3. Copy the **Public IPv4 address**
 
-#### 2.5 🔗 Connect to the instance
+#### 2.5 Connect to the instance
 
 ##### From Linux, macOS or Windows with WSL
 
@@ -454,7 +496,7 @@ Click **Launch instance**
    ssh -i "github-runner-key-pair.pem" ubuntu@YOUR_PUBLIC_IP
    ```
 
-### ⚙️ 3. Configure the runner
+### 3. Configure the runner
 
 3.1 **Go to: GitHub Repo > Settings > Actions > Runners**
 
@@ -462,7 +504,7 @@ Click **Launch instance**
 
 3.3 **Follow the instructions for your OS (in this case the EC2 instance)**
 
-3.4 **Follow the step-by-step instructions (example command below 👇)**
+3.4 **Follow the step-by-step instructions (example command below)**
 
 ```bash
 # 1. Create a folder for the runner
@@ -488,11 +530,11 @@ tar xzf ./actions-runner-linux-x64-2.315.0.tar.gz
 
 3.5 **Options for the name:**
 
-- ✅ **Accept default**: Use the internal IP of the EC2 instance
-- ✅ **Custom**: Write something descriptive like `aws-ec2-runner-prod`
-- ✅ **Function-based**: `github-runner-testing`, `ci-cd-runner`
+- **Accept default**: Use the internal IP of the EC2 instance
+- **Custom**: Write something descriptive like `aws-ec2-runner-prod`
+- **Function-based**: `github-runner-testing`, `ci-cd-runner`
 
-### ▶️ 4. Start the runner
+### 4. Start the runner
 
 ```bash
 ./run.sh # Run it manually
@@ -512,22 +554,26 @@ Check the service status
 sudo systemctl status actions.runner.*
 ```
 
-### ✅ 5. Verify that it's active
+### 5. Verify that it's active
 
 Go back to your GitHub repository → **Settings > Actions > Runners**
 
 You should see your new runner as `online`.
 
-### 6. **Update the Workflow in test_and_build.yaml file to use the aws ec2 instance**
+### 6. **Use the self-hosted workflow template only after host hardening**
+
+`templates/test_and_build-part-b.yaml` is an example for a trusted self-hosted
+runner. Copy it into `.github/workflows/` only after the runner host, IAM role,
+and security group are configured for your environment.
+
+Keep it manual by default unless you have an explicit trusted-branch operating
+model for that runner.
 
 ```yaml
 name: Python Application CI-CD
 
 on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -544,6 +590,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Setup Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
@@ -562,13 +610,14 @@ jobs:
           sudo apt install docker.io -y
           sudo systemctl start docker
           sudo systemctl enable docker
-          sudo usermod -aG docker $USER
-          sudo chmod 666 /var/run/docker.sock
 
       - name: Verify Docker setup
         run: |
           docker --version
           docker info
+
+      # Do not relax /var/run/docker.sock permissions in workflow steps. Grant
+      # runner access during host provisioning, then keep the socket restricted.
 
       - name: Lint with flake8
         working-directory: src
@@ -603,14 +652,16 @@ jobs:
           tags: ${{ vars.DOCKERHUB_USERNAME }}/mi-app-test:latest
 ```
 
-### 7. 🔒 Permissions and Security
+### 7. Permissions and Security
 
-The workflow uses the following permissions:
+The example workflow uses the following permissions:
 
 - `contents: read` - Code reading
 - `packages: write` - Write access to GitHub Container Registry
 
-### 8. 🛡️ Repository Secrets Configuration
+Do not grant broader workflow permissions unless a job explicitly needs them.
+
+### 8. Repository Secrets Configuration
 
 The workflow uses:
 
@@ -629,13 +680,14 @@ The workflow uses:
 
 2. **Outbound rules**
 
-- Type: All traffic
-- Port: All
-- Destination: 0.0.0.0/0
+- Type: DNS / HTTPS only by default
+- Port: 53 (TCP/UDP) and 443 (TCP)
+- Destination: your explicit resolver and approved HTTPS CIDRs
+- Optional: add port 80 only for a documented bootstrap mirror that cannot use HTTPS
 
 ---
 
-### 🎮 Runner Management
+### Runner Management
 
 ```bash
 # Check runner status
@@ -658,20 +710,163 @@ sudo systemctl list-units --type=service | grep runner
 
 ---
 
-## 📊 Comparison: GitHub vs Self-Hosted
+## Runner-as-Code: Terraform Provisioning
+
+### Overview
+
+When the runner infrastructure slice is present on the same branch, the
+Terraform files under `.github/terraform/runner-ec2/` become the source of truth
+for host-level access controls:
+
+- `.github/terraform/runner-ec2/main.tf` attaches the IAM instance profile and
+  security group to the EC2 instance.
+- `.github/terraform/runner-ec2/iam.tf` defines the instance role and profile.
+- `.github/terraform/runner-ec2/sg.tf` scopes inbound SSH, Docker TLS, DNS,
+  HTTPS, and optional bootstrap HTTP rules.
+
+In that broader slice, the values `instance_id`, `public_ip`, and
+`security_group_id` are Terraform outputs declared in
+`.github/terraform/runner-ec2/outputs.tf`. Any statement about workflow outputs
+is conditional on the branch that carries the reusable provisioning workflow.
+
+Workflow examples must not compensate for host misconfiguration by changing
+Docker socket permissions at runtime.
+
+### Architecture
+
+The diagram below is conditional on a branch that includes both the reusable
+workflow and the runner Terraform files.
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    GitHub Repository                             │
+│  ┌────────────────────────────────────────────────────────────┐  │
+│  │  Trusted caller workflow                                    │  │
+│  └──────────────────────────┬───────────────────────────────┘  │
+│                               │ workflow_call                   │
+│                               v                                 │
+│  ┌────────────────────────────────────────────────────────────┐  │
+│  │  reusable-runner-provision.yml (called workflow)           │  │
+│  │  ├─ Configure AWS credentials                              │  │
+│  │  ├─ terraform init → validate → plan                        │  │
+│  │  ├─ apply path currently gated to workflow_dispatch         │  │
+│  │  └─ no workflow outputs published to caller                 │  │
+│  └──────────────────────────┬───────────────────────────────┘  │
+│                               │                                 │
+│                               v                                 │
+│  ┌────────────────────────────────────────────────────────────┐  │
+│  │  AWS EC2 Instance (GitHub Runner)                           │  │
+│  │  ├─ IAM Instance Profile (tracked policy + trust policy)    │  │
+│  │  ├─ Security Group (SSH, Docker TLS, DNS, HTTPS, optional   │  │
+│  │  │  bootstrap HTTP egress)                                  │  │
+│  │  └─ Tags: ManagedBy=terraform                              │  │
+│  └────────────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Terraform Structure
+
+```
+.github/terraform/runner-ec2/
+├── main.tf         # EC2 instance resource
+├── variables.tf    # Environment, AMI, instance type, CIDR
+├── outputs.tf      # Terraform outputs: instance_id, public_ip, security_group_id
+├── sg.tf          # Security group with scoped ingress and egress rules
+└── iam.tf         # IAM role + instance profile
+```
+
+### Provision a Runner
+
+1. **Call the reusable workflow** from a trusted repository or wrapper workflow
+   only if your branch includes `.github/workflows/reusable-runner-provision.yml`:
+
+```yaml
+jobs:
+  provision-runner:
+    uses: owner/repo/.github/workflows/reusable-runner-provision.yml@main
+    with:
+      environment: dev
+    secrets:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+```
+
+Where that reusable workflow is present, a `workflow_call` invocation runs
+Terraform init, validation, and plan creation. The `Terraform Apply` step is
+gated on `github.event_name == 'workflow_dispatch'`, so it is not reached
+through this callable entrypoint alone. Use a wrapper or adjust the
+trigger/condition if you need an apply-capable path.
+
+2. **Create environment tfvars file** (e.g., `dev.tfvars`):
+
+```hcl
+ami                         = "ami-0abcdef1234567890"
+instance_type               = "t3.micro"
+subnet_id                   = "subnet-0123456789abcdef0"
+environment                 = "dev"
+allowed_ssh_cidr            = ["203.0.113.10/32"]
+docker_daemon_allowed_cidr  = ["203.0.113.10/32"]
+runner_dns_egress_cidr_blocks   = ["192.0.2.53/32"]
+runner_https_egress_cidr_blocks = ["198.51.100.0/24"]
+allow_bootstrap_http_egress     = false
+bootstrap_http_egress_cidr_blocks = ["198.51.100.80/32"]
+```
+
+> `203.0.113.10/32`, `192.0.2.53/32`, `198.51.100.0/24`, and `198.51.100.80/32` are TEST-NET placeholders only. Replace them with your real admin, DNS, HTTPS, and optional HTTP mirror CIDRs before `terraform apply`.
+
+### IAM Policy and Trust Relationship
+
+The tracked Terraform for the runner IAM role looks up an IAM policy by the
+configured name `GitHubActionsRunner managed policy` and attaches the returned
+ARN to the role. It also uses the following EC2 trust relationship:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [{
+    "Action": "sts:AssumeRole",
+    "Effect": "Allow",
+    "Principal": { "Service": "ec2.amazonaws.com" }
+  }]
+}
+```
+
+### Security Group Rules
+
+| Direction | Port | Protocol | Source | Purpose |
+|-----------|------|----------|--------|---------|
+| Inbound | 22 | TCP | Admin CIDR | SSH access |
+| Inbound | 2376 | TCP | `docker_daemon_allowed_cidr` | Docker daemon TLS |
+| Outbound | 53 | TCP/UDP | `runner_dns_egress_cidr_blocks` | DNS |
+| Outbound | 443 | TCP | `runner_https_egress_cidr_blocks` | GitHub, registries, HTTPS APIs |
+| Outbound | 80 | TCP | `bootstrap_http_egress_cidr_blocks` | Optional bootstrap HTTP mirrors only when `allow_bootstrap_http_egress = true` |
+
+Operational notes:
+
+- The runner explicitly attaches the Terraform-managed security group.
+- The tracked defaults do not leave `0.0.0.0/0` open. The README values are
+  placeholders so you must define approved DNS resolvers and HTTPS destinations.
+- If you need broader egress, define it explicitly in your `tfvars` instead of
+  inheriting broad CIDRs from the repository.
+- Set `allow_bootstrap_http_egress = true` only when a required mirror does not
+  support HTTPS, and document the reason in your fork or ADR.
+- Do not run self-hosted workflows for pull requests from untrusted forks. This
+  repository keeps them as operator-controlled examples.
+
+## Comparison: GitHub vs Self-Hosted
 
 | Aspect               | GitHub Hosted    | Self-Hosted (AWS)   | Explanation                                                                                                                        |
 | -------------------- | ---------------- | ------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| **🕒 Setup Time**    | Immediate        | \~15 minutes        | GitHub Hosted runners are ready instantly. Self-hosted requires launching a server, installing the runner, and configuring it.     |
-| **💰 Cost**          | Included minutes | Pay-per-use AWS     | GitHub provides free minutes (especially for public repos). With AWS, you pay for compute, storage, and network use.               |
-| **🎛️ Control**       | Limited          | Total               | GitHub Hosted has a fixed environment. Self-hosted gives full control over OS, installed tools, and network settings.              |
-| **🔧 Customization** | Basic            | Complete            | GitHub runners allow basic customization inside the job. Self-hosted runners can be customized at system level.                    |
-| **🛡️ Security**      | GitHub managed   | Your responsibility | GitHub secures their infrastructure. With self-hosted, you're responsible for updates, firewalls, access control, etc.             |
-| **📈 Scalability**   | Auto             | Manual              | GitHub automatically scales runners for parallel jobs. With self-hosted, you need to configure scaling or provision more machines. |
+| **Setup Time**       | Immediate        | Manual registration | GitHub Hosted runners are ready instantly. Self-hosted requires launching a server, installing the runner, and following the manual registration steps. |
+| **Cost**             | Included minutes | Pay-per-use AWS     | GitHub provides free minutes (especially for public repos). With AWS, you pay for compute, storage, and network use.               |
+| **Control**         | Limited          | Total               | GitHub Hosted has a fixed environment. Self-hosted gives full control over OS, installed tools, and network settings.              |
+| **Customization**    | Basic            | Complete            | GitHub runners allow basic customization inside the job. Self-hosted runners can be customized at system level.                    |
+| **Security**         | GitHub managed   | Your responsibility | GitHub secures their infrastructure. With self-hosted, you're responsible for updates, firewalls, access control, etc.             |
+| **Scalability**      | Auto             | Manual              | GitHub automatically scales runners for parallel jobs. With self-hosted, you need to configure scaling or provision more machines. |
 
 ---
 
-## 🧹 Clean Up Resources When Finished
+## Clean Up Resources When Finished
 
 ### 1. Terminate the instance
 
@@ -709,7 +904,7 @@ aws ec2 describe-key-pairs --region us-east-1 --query 'KeyPairs[?KeyName==`githu
 
 ---
 
-## 🔍 Troubleshooting
+## Troubleshooting
 
 ### Common Issues
 
@@ -743,9 +938,9 @@ sudo chown -R ubuntu:ubuntu ~/actions-runner
 sudo chmod +x actions-runner/run.sh
 ```
 
-## 📚 Additional Resources
+## Additional Resources
 
-- 📖 [GitHub Actions Documentation](https://docs.github.com/en/actions)
-- 🐳 [Docker Documentation](https://docs.docker.com/)
-- 🐍 [Python Testing with pytest](https://docs.pytest.org/)
-- 🔍 [Flake8 Documentation](https://flake8.pycqa.org/)
+- [GitHub Actions Documentation](https://docs.github.com/en/actions)
+- [Docker Documentation](https://docs.docker.com/)
+- [Python Testing with pytest](https://docs.pytest.org/)
+- [Flake8 Documentation](https://flake8.pycqa.org/)
