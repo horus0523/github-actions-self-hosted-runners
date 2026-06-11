@@ -165,7 +165,7 @@ The pipeline runs on multiple Python versions:
 
 6. **Container Build**
    - Pull requests build the image without publishing it
-   - Pushes to `main` build and publish the image to GitHub Container Registry
+   - Image publishing is opt-in for trusted callers only (`with.push_image: true`)
 
 ---
 
@@ -260,7 +260,7 @@ The `test_and_build.yaml` workflow automatically executes:
 
 3. **Container Build**
    - Pull requests validate the Docker build without pushing
-   - Pushes to `main` publish the image to GitHub Container Registry
+   - Trusted callers can opt in to publishing with `with.push_image: true`
 
 ### Monitoring and Debugging
 
@@ -781,7 +781,7 @@ The diagram below reflects the committed reusable workflow and Terraform layout.
         apply: false
         terraform_source_repository: horus0523/github-actions-self-hosted-runners
         terraform_source_ref: main
-        tfvars_file: path/to/your-runner.tfvars
+        tfvars_file: dev.tfvars
       secrets:
         AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -798,11 +798,14 @@ or another revision.
 
 2. **Provide a tfvars file**. Callers must pass `with.tfvars_file` and point it
    at a file that exists inside the checked-out Terraform source repository/ref.
-   The reusable workflow always runs `terraform plan -var-file=...`, so the
-   caller-owned tfvars file must provide required values such as `ami` and
-   `subnet_id`. This repository does not ship a default `<environment>.tfvars`
-   file, so the path must come from the caller/source repo you check out.
-   Example caller-owned `dev.tfvars`:
+   The reusable workflow runs Terraform from `.github/terraform/runner-ec2`, so
+   `tfvars_file` is resolved from that directory. Use a filename such as
+   `dev.tfvars` when the checked-out source repo/ref contains
+   `.github/terraform/runner-ec2/dev.tfvars`. The reusable workflow always runs
+   `terraform plan -var-file=...`, so the caller-owned tfvars file must provide
+   required values such as `ami` and `subnet_id`. This repository does not ship
+   a default `<environment>.tfvars` file, so the path must come from the
+   caller/source repo you check out. Example caller-owned `dev.tfvars`:
 
 ```hcl
 ami                         = "ami-0abcdef1234567890"
