@@ -775,15 +775,16 @@ The diagram below reflects the committed reusable workflow and Terraform layout.
  ```yaml
  jobs:
    provision-runner:
-     uses: owner/repo/.github/workflows/reusable-runner-provision.yml@main
-     with:
-       environment: dev
-       apply: false
-       terraform_source_repository: horus0523/github-actions-self-hosted-runners
-       terraform_source_ref: main
-     secrets:
-       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      uses: owner/repo/.github/workflows/reusable-runner-provision.yml@main
+      with:
+        environment: dev
+        apply: false
+        terraform_source_repository: horus0523/github-actions-self-hosted-runners
+        terraform_source_ref: main
+        tfvars_file: .github/terraform/runner-ec2/dev.tfvars
+      secrets:
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
  ```
 
 This `workflow_call` entrypoint always runs Terraform init, validate, and plan.
@@ -795,10 +796,12 @@ always available. Override `terraform_source_repository` or
 `terraform_source_ref` only when you intentionally want to provision from a fork
 or another revision.
 
-2. **Provide a tfvars file** in the checked-out Terraform source repository at
-   `.github/terraform/runner-ec2/<environment>.tfvars`, or pass
-   `with.tfvars_file` explicitly to point at another file within that checked-out
-   repository. Example `dev.tfvars`:
+2. **Provide a tfvars file**. Callers must pass `with.tfvars_file` and point it
+   at a file that exists inside the checked-out Terraform source repository/ref.
+   The reusable workflow always runs `terraform plan -var-file=...`, so the
+   caller-owned tfvars file must provide required values such as `ami` and
+   `subnet_id`. This repository does not commit a default `<environment>.tfvars`
+   file for you. Example caller-owned `dev.tfvars`:
 
 ```hcl
 ami                         = "ami-0abcdef1234567890"

@@ -20,7 +20,7 @@ on:
         default: ubuntu
       tfvars_file:
         type: string
-        default: ""
+        required: true
     secrets:
       AWS_ACCESS_KEY_ID:
         required: true
@@ -62,12 +62,8 @@ jobs:
 
       - name: Terraform Plan
         run: |
-          TFVARS_FILE="${{ inputs.tfvars_file }}"
-          if [ -z "$TFVARS_FILE" ]; then
-            TFVARS_FILE="${{ inputs.environment }}.tfvars"
-          fi
           terraform plan \
-            -var-file="$TFVARS_FILE" \
+            -var-file="${{ inputs.tfvars_file }}" \
             -out=tfplan
         working-directory: .github/terraform/runner-ec2
 
