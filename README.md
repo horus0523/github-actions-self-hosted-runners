@@ -79,7 +79,7 @@ permissions and only runs when another workflow calls it.
 - **Docker** - Application containerization
 - **pytest** - Testing framework
 - **flake8** - Static code analysis
-- **GitHub Container Registry** - Image registry
+- **GitHub Container Registry / Docker Hub** - Container registries used by the workflows
 
 ## Pipeline Flow
 
@@ -165,7 +165,8 @@ The pipeline runs on multiple Python versions:
 
 6. **Container Build**
    - Pull requests build the image without publishing it
-   - Image publishing is opt-in for trusted callers only (`with.push_image: true`)
+   - Pushes to `main` build and publish the image automatically via the `publish_container` job
+   - The reusable workflow is separate and only publishes when a trusted caller sets `with.push_image: true`
 
 ---
 
@@ -260,7 +261,8 @@ The `test_and_build.yaml` workflow automatically executes:
 
 3. **Container Build**
    - Pull requests validate the Docker build without pushing
-   - Trusted callers can opt in to publishing with `with.push_image: true`
+   - Pushes to `main` publish automatically to GitHub Container Registry through the `publish_container` job
+   - The reusable self-hosted workflow is the opt-in path that uses `with.push_image: true`
 
 ### Monitoring and Debugging
 
@@ -573,7 +575,6 @@ on:
 
 permissions:
   contents: read
-  packages: write
 
 jobs:
   test_and_build:
@@ -653,7 +654,10 @@ jobs:
 The example workflow uses the following permissions:
 
 - `contents: read` - Code reading
-- `packages: write` - Write access to GitHub Container Registry
+
+Docker Hub publishing in this template uses `${{ vars.DOCKERHUB_USERNAME }}` and
+`${{ secrets.DOCKERHUB_TOKEN }}` for registry authentication, so GitHub Packages
+permission is not required here.
 
 Do not grant broader workflow permissions unless a job explicitly needs them.
 
