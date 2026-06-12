@@ -8,7 +8,6 @@ on:
 
 permissions:
   contents: read
-  packages: write
 
 jobs:
   test_and_build:
@@ -45,6 +44,24 @@ jobs:
         working-directory: src
         run: |
           python -m pytest test.py
+
+      - name: Build container image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+
+  publish_container:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: test_and_build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
