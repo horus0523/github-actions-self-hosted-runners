@@ -72,11 +72,3 @@ jobs:
         run: |
           terraform apply -auto-approve tfplan
         working-directory: .github/terraform/runner-ec2
-
-      - name: Upload Terraform Plan Artifact
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        if: github.ref != 'refs/heads/main'
-        with:
-          name: terraform-plan-${{ inputs.environment }}
-          path: .github/terraform/runner-ec2/tfplan
-          retention-days: 5

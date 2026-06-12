@@ -166,7 +166,7 @@ The pipeline runs on multiple Python versions:
 6. **Container Build**
    - Pull requests build the image without publishing it
    - Pushes to `main` build and publish the image automatically via the `publish_container` job
-   - The reusable workflow is separate and only publishes when a trusted caller sets `with.push_image: true`
+   - The reusable workflow is separate and only publishes to GitHub Container Registry when a trusted caller sets `with.push_image: true`
 
 ---
 
@@ -262,7 +262,7 @@ The `test_and_build.yaml` workflow automatically executes:
 3. **Container Build**
    - Pull requests validate the Docker build without pushing
    - Pushes to `main` publish automatically to GitHub Container Registry through the `publish_container` job
-   - The reusable self-hosted workflow is the opt-in path that uses `with.push_image: true`
+   - The reusable self-hosted workflow is the opt-in path that uses `with.push_image: true` to publish to GitHub Container Registry
 
 ### Monitoring and Debugging
 

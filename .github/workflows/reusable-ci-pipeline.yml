@@ -6,9 +6,6 @@ on:
       python_version:
         type: string
         default: '3.12'
-      docker_registry:
-        type: string
-        default: ghcr.io
       push_image:
         type: boolean
         default: false
@@ -57,7 +54,7 @@ jobs:
 
       - name: Build Docker image
         run: |
-          IMAGE_TAG=${{ inputs.docker_registry }}/${{ github.repository }}:${{ github.sha }}
+          IMAGE_TAG=ghcr.io/${{ github.repository }}:${{ github.sha }}
           docker build -t $IMAGE_TAG .
 
   publish_container:
@@ -70,10 +67,10 @@ jobs:
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
 
-      - name: Login to Container Registry
+      - name: Login to GitHub Container Registry
         uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9
         with:
-          registry: ${{ inputs.docker_registry }}
+          registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GHCR_TOKEN }}
 
@@ -85,10 +82,10 @@ jobs:
 
       - name: Build Docker image
         run: |
-          IMAGE_TAG=${{ inputs.docker_registry }}/${{ github.repository }}:${{ github.sha }}
+          IMAGE_TAG=ghcr.io/${{ github.repository }}:${{ github.sha }}
           docker build -t $IMAGE_TAG .
 
       - name: Push Docker image
         run: |
-          IMAGE_TAG=${{ inputs.docker_registry }}/${{ github.repository }}:${{ github.sha }}
+          IMAGE_TAG=ghcr.io/${{ github.repository }}:${{ github.sha }}
           docker push $IMAGE_TAG
