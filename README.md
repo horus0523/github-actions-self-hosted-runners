@@ -79,7 +79,7 @@ permissions and only runs when another workflow calls it.
 - **Docker** - Application containerization
 - **pytest** - Testing framework
 - **flake8** - Static code analysis
-- **GitHub Container Registry / Docker Hub** - Container registries used by the workflows
+- **GitHub Container Registry** - Container registry used by the active workflows
 
 ## Pipeline Flow
 
@@ -296,7 +296,10 @@ self-hosted workflows for pull requests from untrusted forks.
 
 ---
 
-### Configure Variables in GitHub
+### Configure Docker Hub Variables for the Manual Part B Template
+
+The active checked-in workflows publish to GitHub Container Registry. Configure the
+Docker Hub values below only if you copy and use `templates/test_and_build-part-b.yaml`.
 
 #### Required Variables
 
