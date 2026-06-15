@@ -9,12 +9,6 @@ on:
       apply:
         type: boolean
         default: false
-      terraform_source_repository:
-        type: string
-        default: horus0523/github-actions-self-hosted-runners
-      terraform_source_ref:
-        type: string
-        default: main
       runner_user:
         type: string
         default: ubuntu
@@ -38,8 +32,6 @@ jobs:
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
-          repository: ${{ inputs.terraform_source_repository }}
-          ref: ${{ inputs.terraform_source_ref }}
           persist-credentials: false
 
       - name: Configure AWS

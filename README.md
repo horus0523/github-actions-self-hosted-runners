@@ -786,8 +786,6 @@ The diagram below reflects the committed reusable workflow and Terraform layout.
       with:
         environment: dev
         apply: false
-        terraform_source_repository: horus0523/github-actions-self-hosted-runners
-        terraform_source_ref: main
         tfvars_file: dev.tfvars
       secrets:
         AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -796,15 +794,12 @@ The diagram below reflects the committed reusable workflow and Terraform layout.
 
 This `workflow_call` entrypoint always runs Terraform init, validate, and plan.
 `Terraform Apply` runs only when the trusted caller sets `with.apply: true`.
-Keep the default `false` for review and validation flows. By default, the
-workflow checks out `horus0523/github-actions-self-hosted-runners@main` so the
-Terraform source is explicit and the `.github/terraform/runner-ec2` directory is
-always available. Override `terraform_source_repository` or
-`terraform_source_ref` only when you intentionally want to provision from a fork
-or another revision.
+Keep the default `false` for review and validation flows. The workflow always
+uses the workflow repository/ref selected by the trusted caller, so Terraform
+source cannot be redirected to an arbitrary fork through workflow inputs.
 
 2. **Provide a tfvars file**. Callers must pass `with.tfvars_file` and point it
-   at a file that exists inside the checked-out Terraform source repository/ref.
+   at a file that exists inside the checked-out workflow repository/ref.
    The reusable workflow runs Terraform from `.github/terraform/runner-ec2`, so
    `tfvars_file` is resolved from that directory. Use a filename such as
    `dev.tfvars` when the checked-out source repo/ref contains
@@ -812,7 +807,7 @@ or another revision.
    `terraform plan -var-file=...`, so the caller-owned tfvars file must provide
    required values such as `ami` and `subnet_id`. This repository does not ship
    a default `<environment>.tfvars` file, so the path must come from the
-   caller/source repo you check out. Example caller-owned `dev.tfvars`:
+   trusted workflow repository/ref. Example caller-owned `dev.tfvars`:
 
 ```hcl
 ami                         = "ami-0abcdef1234567890"
