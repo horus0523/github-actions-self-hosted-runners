@@ -794,9 +794,10 @@ The diagram below reflects the committed reusable workflow and Terraform layout.
 
 This `workflow_call` entrypoint always runs Terraform init, validate, and plan.
 `Terraform Apply` runs only when the trusted caller sets `with.apply: true`.
-Keep the default `false` for review and validation flows. The workflow always
-uses the workflow repository/ref selected by the trusted caller, so Terraform
-source cannot be redirected to an arbitrary fork through workflow inputs.
+Keep the default `false` for review and validation flows. The workflow checks
+out `${{ job.workflow_repository }}` at `${{ job.workflow_sha }}`, so Terraform
+source is anchored to the reusable workflow repository/ref and cannot be
+redirected to an arbitrary fork through workflow inputs.
 
 2. **Provide a tfvars file**. Callers must pass `with.tfvars_file` and point it
    at a file that exists inside the checked-out workflow repository/ref.
