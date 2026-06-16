@@ -20,6 +20,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          persist-credentials: false
 
       - name: Setup Python ${{ matrix.python-version }}
         uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
@@ -51,9 +53,35 @@ jobs:
           context: .
           push: false
 
+  terraform_validate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          persist-credentials: false
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Terraform Format Check
+        working-directory: .github/terraform/runner-ec2
+        run: terraform fmt -check
+
+      - name: Terraform Init
+        working-directory: .github/terraform/runner-ec2
+        run: terraform init -backend=false
+
+      - name: Terraform Validate
+        working-directory: .github/terraform/runner-ec2
+        run: terraform validate
+
   publish_container:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: test_and_build
+    needs:
+      - test_and_build
+      - terraform_validate
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -62,6 +90,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          persist-credentials: false
 
       - name: Login to GitHub Container Registry
         uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9
