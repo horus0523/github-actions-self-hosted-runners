@@ -770,7 +770,7 @@ The diagram below reflects the committed reusable workflow and Terraform layout.
 .github/terraform/runner-ec2/
 ├── main.tf         # EC2 instance resource
 ├── variables.tf    # Environment, AMI, instance type, CIDR
-├── outputs.tf      # Terraform outputs: instance_id, public_ip, security_group_id
+├── outputs.tf      # Terraform outputs: instance_id, public_ip, private_ip, security_group_id
 ├── sg.tf          # Security group with scoped ingress and egress rules
 └── iam.tf         # IAM role + instance profile
 ```
