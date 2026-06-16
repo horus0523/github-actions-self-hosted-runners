@@ -726,9 +726,9 @@ truth for host-level access controls used by the reusable provisioning workflow:
 - `.github/terraform/runner-ec2/sg.tf` scopes inbound SSH, Docker TLS, DNS,
   HTTPS, and optional bootstrap HTTP rules.
 
-The values `instance_id`, `public_ip`, and `security_group_id` are Terraform
-outputs declared in `.github/terraform/runner-ec2/outputs.tf`. The reusable
-workflow does not publish them back to the caller as workflow outputs.
+The values `instance_id`, `public_ip`, `private_ip`, and `security_group_id`
+are Terraform outputs declared in `.github/terraform/runner-ec2/outputs.tf`.
+The reusable workflow does not publish them back to the caller as workflow outputs.
 
 Workflow examples must not compensate for host misconfiguration by changing
 Docker socket permissions at runtime.
