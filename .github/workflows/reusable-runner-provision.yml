@@ -1,0 +1,70 @@
+name: Reusable Runner Provision
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        type: string
+        default: dev
+      apply:
+        type: boolean
+        default: false
+      runner_user:
+        type: string
+        default: ubuntu
+      tfvars_file:
+        type: string
+        required: true
+    secrets:
+      AWS_ACCESS_KEY_ID:
+        required: true
+      AWS_SECRET_ACCESS_KEY:
+        required: true
+      SSH_PUBLIC_KEY:
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  provision:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          repository: ${{ job.workflow_repository }}
+          ref: ${{ job.workflow_sha }}
+          persist-credentials: false
+
+      - name: Configure AWS
+        uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd
+
+      - name: Terraform Format Check
+        run: terraform fmt -check
+        working-directory: .github/terraform/runner-ec2
+
+      - name: Terraform Init
+        run: terraform init -backend=false
+        working-directory: .github/terraform/runner-ec2
+
+      - name: Terraform Validate
+        run: terraform validate
+        working-directory: .github/terraform/runner-ec2
+
+      - name: Terraform Init For Apply
+        if: ${{ inputs.apply }}
+        run: terraform init
+        working-directory: .github/terraform/runner-ec2
+
+      - name: Terraform Apply
+        if: ${{ inputs.apply }}
+        run: |
+          terraform apply -auto-approve -var-file="${{ inputs.tfvars_file }}"
+        working-directory: .github/terraform/runner-ec2

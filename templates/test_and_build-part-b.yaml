@@ -1,14 +1,12 @@
 name: Python Application CI-CD
 
 on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
+  # Keep the self-hosted template manual by default. Do not enable untrusted
+  # fork-triggered execution on operator-managed runner hosts.
+  workflow_dispatch:
 
 permissions:
   contents: read
-  packages: write
 
 jobs:
   test_and_build:
@@ -20,7 +18,9 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          persist-credentials: false
 
       - name: Setup Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
@@ -33,14 +33,12 @@ jobs:
           pip install flake8 pytest
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
-      - name: Install and setup Docker
+      - name: Setup Docker
         run: |
           sudo apt update
           sudo apt install docker.io -y
           sudo systemctl start docker
           sudo systemctl enable docker
-          sudo usermod -aG docker $USER
-          sudo chmod 666 /var/run/docker.sock
 
       - name: Verify Docker setup
         run: |
