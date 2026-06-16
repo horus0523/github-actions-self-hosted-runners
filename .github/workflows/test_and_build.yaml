@@ -63,7 +63,7 @@ jobs:
           persist-credentials: false
 
       - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
+        uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd
 
       - name: Terraform Format Check
         working-directory: .github/terraform/runner-ec2

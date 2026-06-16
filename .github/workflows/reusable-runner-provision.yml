@@ -44,25 +44,27 @@ jobs:
           aws-region: us-east-1
 
       - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
+        uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd
+
+      - name: Terraform Format Check
+        run: terraform fmt -check
+        working-directory: .github/terraform/runner-ec2
 
       - name: Terraform Init
-        run: terraform init
+        run: terraform init -backend=false
         working-directory: .github/terraform/runner-ec2
 
       - name: Terraform Validate
         run: terraform validate
         working-directory: .github/terraform/runner-ec2
 
-      - name: Terraform Plan
-        run: |
-          terraform plan \
-            -var-file="${{ inputs.tfvars_file }}" \
-            -out=tfplan
+      - name: Terraform Init For Apply
+        if: ${{ inputs.apply }}
+        run: terraform init
         working-directory: .github/terraform/runner-ec2
 
       - name: Terraform Apply
         if: ${{ inputs.apply }}
         run: |
-          terraform apply -auto-approve tfplan
+          terraform apply -auto-approve -var-file="${{ inputs.tfvars_file }}"
         working-directory: .github/terraform/runner-ec2
