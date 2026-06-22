@@ -59,9 +59,32 @@ jobs:
           IMAGE_TAG=ghcr.io/${{ github.repository }}:${{ github.sha }}
           docker build -t $IMAGE_TAG .
 
+  publish_gate:
+    runs-on: ubuntu-latest
+    outputs:
+      enabled: ${{ steps.gate.outputs.enabled }}
+    steps:
+      - id: gate
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
+          PUSH_IMAGE: ${{ inputs.push_image }}
+          REF_NAME: ${{ github.ref }}
+        run: |
+          if [ "$PUSH_IMAGE" = 'true' ] \
+            && [ "$EVENT_NAME" = 'push' ] \
+            && [ "$REF_NAME" = 'refs/heads/main' ] \
+            && [ -n "$GHCR_TOKEN" ]; then
+            echo 'enabled=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'enabled=false' >> "$GITHUB_OUTPUT"
+          fi
+
   publish_container:
-    if: ${{ inputs.push_image && secrets.GHCR_TOKEN != '' && github.event_name == 'push' && github.ref == 'refs/heads/main' }}
-    needs: ci
+    if: ${{ needs.publish_gate.outputs.enabled == 'true' }}
+    needs:
+      - ci
+      - publish_gate
     runs-on: self-hosted
     permissions:
       contents: read
